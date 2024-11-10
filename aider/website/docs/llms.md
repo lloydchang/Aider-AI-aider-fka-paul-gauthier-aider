@@ -29,7 +29,7 @@ Aider works with a number of **free** API providers:
 
 - Google's [Gemini 1.5 Pro](/docs/llms/gemini.html) works with aider, with
 code editing capabilities similar to GPT-3.5.
-- You can use [Llama 3 70B on Groq](/docs/llms/groq.html) which is comparable to GPT-3.5 in code editing performance.
+- You can use [Llama 3 70B on Groq](/docs/llms/groq.html) which is comparable to GPT-3.5 in code editing performance. Alternatively, [Llama 3.1 405B on OpenRouter](/docs/llms/openrouter.html).
 - Cohere also offers free API access to their [Command-R+ model](/docs/llms/cohere.html), which works with aider as a *very basic* coding assistant.
 
 ## Local models

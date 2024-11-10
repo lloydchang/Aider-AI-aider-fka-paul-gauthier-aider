@@ -525,6 +525,15 @@ MODEL_SETTINGS = [
         send_undo_reply=False,
         examples_as_sys_msg=True,
     ),
+    # Openrouter llama3.1
+    ModelSettings(
+        "openrouter/meta-llama/llama-3.1-405b-instruct:free",
+        "diff",
+        weak_model_name="meta-llama/llama-3.1-405b-instruct:free",
+        use_repo_map=False,
+        send_undo_reply=False,
+        examples_as_sys_msg=True,
+    ),
     # Gemini
     ModelSettings(
         "gemini/gemini-1.5-pro-002",

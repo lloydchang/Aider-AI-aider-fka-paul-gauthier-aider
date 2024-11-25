@@ -10,6 +10,7 @@ nav_exclude: true
 {% endif %}
 
 # Quantization matters
+{: .no_toc }
 
 Open source models like Qwen 2.5 32B Instruct are performing very well on
 aider's code editing benchmark, rivaling closed source frontier models.
@@ -18,27 +19,31 @@ can impact code editing skill.
 Heavily quantized models are often used by cloud API providers
 and local model servers like Ollama or MLX.
 
-<canvas id="quantChart" width="800" height="500" style="margin: 20px 0"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-{% include quant-chart.js %}
-</script>
-
-The graph above compares different versions of the Qwen 2.5 Coder 32B Instruct model,
+The graph and table below compares different versions of the Qwen 2.5 Coder 32B Instruct model,
 served both locally and from cloud providers.
 
 - The [HuggingFace BF16 weights](https://huggingface.co/Qwen/Qwen2.5-Coder-32B-Instruct) served via [glhf.chat](https://glhf.chat).
 - [4bit and 8bit quants for mlx](https://t.co/cwX3DYX35D).
 - The results from [OpenRouter's mix of providers](https://openrouter.ai/qwen/qwen-2.5-coder-32b-instruct/providers) which serve the model with different levels of quantization.
+- Results from individual providers served via OpenRouter and directly to their own APIs.
 - Ollama locally serving different quantizations from the [Ollama model library](https://ollama.com/library/qwen2.5-coder:32b-instruct-q4_K_M).
-- Other API providers.
 
 The best version of the model rivals GPT-4o, while the worst performer
-is more like GPT-4 level.
+is more like the older GPT-4 Turbo.
 
-{: .note }
-This article is being updated as additional benchmark runs complete.
+### Sections
+{: .no_toc }
 
+- TOC
+{:toc}
+
+## Benchmark results
+
+<canvas id="quantChart" width="800" height="600" style="margin: 20px 0"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% include quant-chart.js %}
+</script>
 
 <input type="text" id="quantSearchInput" placeholder="Search..." style="width: 100%; max-width: 800px; margin: 10px auto; padding: 8px; display: block; border: 1px solid #ddd; border-radius: 4px;">
 
@@ -104,21 +109,18 @@ document.getElementById('quantSearchInput').addEventListener('keyup', function()
 
 [Ollama uses a 2k context window by default](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-specify-the-context-window-size),
 which is very small for working with aider.
+Unlike most other LLM servers, Ollama does not throw an error if you submit
+a request that exceeds the context window.
+Instead, it just silently truncates the request by discarding the "oldest" messages
+in the chat to make it fit within the context window.
 
 All of the Ollama results above were collected with at least an 8k context window, which
 is large enough to attempt all the coding problems in the benchmark.
+Aider sets Ollama's context window to 8k by default.
 
-You can set the Ollama server's context window with a 
+You can change the Ollama server's context window with a 
 [`.aider.model.settings.yml` file](https://aider.chat/docs/config/adv-model-settings.html#model-settings)
 like this:
-
-```
-- name: aider/extra_params
-  extra_params:
-    num_ctx: 8192
-```
-
-That uses the special model name `aider/extra_params` to set it for *all* models. You should probably use a specific model name like:
 
 ```
 - name: ollama/qwen2.5-coder:32b-instruct-fp16
@@ -130,11 +132,18 @@ That uses the special model name `aider/extra_params` to set it for *all* models
 
 OpenRouter allows you to ignore specific providers in your
 [preferences](https://openrouter.ai/settings/preferences).
-This can be effective to exclude highly quantized or otherwise
-undesirable providers.
+This can be used to limit your OpenRouter requests to be
+served by only your preferred providers.
 
+## Notes
 
-{: .note }
-Earlier versions of this article included incorrect Ollama models,
-and also included some Ollama results with the too small default 2k
-context window.
+This article went through many revisions as I received feedback from
+numerous members of the community.
+Here are some of the noteworthy learnings and changes:
+
+- The first version of this article included incorrect Ollama models.
+- Earlier Ollama results used the too small default 2k context window,
+artificially harming the benchmark results.
+- The benchmark results appear to have uncovered a problem in the way
+OpenRouter was communicating with Hyperbolic.
+They fixed the issue 11/24/24, shortly after it was pointed out.

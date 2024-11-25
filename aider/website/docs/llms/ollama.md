@@ -45,21 +45,24 @@ setx   OLLAMA_API_KEY <api-key> # Windows, restart shell after setx
 [Ollama uses a 2k context window by default](https://github.com/ollama/ollama/blob/main/docs/faq.md#how-can-i-specify-the-context-window-size),
 which is very small for working with aider.
 
-You can set the Ollama server's context window with a 
+Aider sets Ollama's context window to 8k by default. 
+If you would like
+a large context window
+you can use a
 [`.aider.model.settings.yml` file](https://aider.chat/docs/config/adv-model-settings.html#model-settings)
 like this:
 
 ```
-- name: aider/extra_params
+- name: ollama/qwen2.5-coder:32b-instruct-fp16
   extra_params:
-    num_ctx: 65536
+    num_ctx: 8192
 ```
 
-That uses the special model name `aider/extra_params` to set it for *all* models. You should probably use a specific model name like:
-
-```
-- name: ollama_chat/qwen2.5-coder:32b-instruct-fp16
-  extra_params:
-    num_ctx: 65536
-```
-
+Unlike most other LLM servers, Ollama does not throw an error if you submit
+a request that exceeds the context window.
+Instead, it just silently truncates the request by discarding the "oldest" messages
+in the chat to make it fit within the context window.
+So if your context window is too small, you won't get an error.
+Aider will probably just fail to work well and experience
+a lot of 
+[file editing problems](https://aider.chat/docs/troubleshooting/edit-errors.html).

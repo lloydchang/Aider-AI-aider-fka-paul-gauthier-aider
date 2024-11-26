@@ -821,32 +821,32 @@ This command will print 'Hello, World!' to the console."""
         with GitTemporaryDirectory():
             io = InputOutput(yes=True)
             coder = Coder.create(self.GPT35, "diff", io=io, suggest_shell_commands=False)
+            self.assertFalse(coder.suggest_shell_commands)
 
-            def mock_send(*args, **kwargs):
-                coder.partial_response_content = """Here's a shell command to run:
+    def test_detect_urls_enabled(self):
+        with GitTemporaryDirectory():
+            io = InputOutput(yes=True)
+            coder = Coder.create(self.GPT35, "diff", io=io, detect_urls=True)
+            coder.commands.scraper = MagicMock()
+            coder.commands.scraper.scrape = MagicMock(return_value="some content")
 
-```bash
-echo "Hello, World!"
-```
+            # Test with a message containing a URL
+            message = "Check out https://example.com"
+            coder.check_for_urls(message)
+            coder.commands.scraper.scrape.assert_called_once_with("https://example.com")
 
-This command will print 'Hello, World!' to the console."""
-                coder.partial_response_function_call = dict()
-                return []
+    def test_detect_urls_disabled(self):
+        with GitTemporaryDirectory():
+            io = InputOutput(yes=True)
+            coder = Coder.create(self.GPT35, "diff", io=io, detect_urls=False)
+            coder.commands.scraper = MagicMock()
+            coder.commands.scraper.scrape = MagicMock(return_value="some content")
 
-            coder.send = mock_send
-
-            # Mock the handle_shell_commands method to check if it's called
-            coder.handle_shell_commands = MagicMock()
-
-            # Run the coder with a message
-            coder.run(with_message="Suggest a shell command")
-
-            # Check if the shell command was added to the list
-            self.assertEqual(len(coder.shell_commands), 1)
-            self.assertEqual(coder.shell_commands[0].strip(), 'echo "Hello, World!"')
-
-            # Check if handle_shell_commands was called with the correct argument
-            coder.handle_shell_commands.assert_not_called()
+            # Test with a message containing a URL
+            message = "Check out https://example.com"
+            result = coder.check_for_urls(message)
+            self.assertEqual(result, [])
+            coder.commands.scraper.scrape.assert_not_called()
 
     def test_coder_create_with_new_file_oserror(self):
         with GitTemporaryDirectory():

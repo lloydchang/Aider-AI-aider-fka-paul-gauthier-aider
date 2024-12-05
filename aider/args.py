@@ -83,7 +83,7 @@ def get_parser(default_config_files, git_root):
         const=gpt_4_model,
         help=f"Use {gpt_4_model} model for the main chat",
     )
-    gpt_4o_model = "gpt-4o-2024-08-06"
+    gpt_4o_model = "gpt-4o"
     group.add_argument(
         "--4o",
         action="store_const",
@@ -194,10 +194,22 @@ def get_parser(default_config_files, git_root):
         help="Specify a file with context window and costs for unknown models",
     )
     group.add_argument(
+        "--alias",
+        action="append",
+        metavar="ALIAS:MODEL",
+        help="Add a model alias (can be used multiple times)",
+    )
+    group.add_argument(
         "--verify-ssl",
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Verify the SSL cert when connecting to models (default: True)",
+    )
+    group.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        help="Timeout in seconds for API calls (default: None)",
     )
     group.add_argument(
         "--edit-format",
@@ -517,6 +529,12 @@ def get_parser(default_config_files, git_root):
         help="Skip the sanity check for the git repository (default: False)",
         default=False,
     )
+    group.add_argument(
+        "--watch-files",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Enable/disable watching files for ai coding comments (default: False)",
+    )
     group = parser.add_argument_group("Fixing and committing")
     group.add_argument(
         "--lint",
@@ -553,7 +571,7 @@ def get_parser(default_config_files, git_root):
     group.add_argument(
         "--test",
         action="store_true",
-        help="Run tests and fix problems found",
+        help="Run tests, fix problems found and then exit",
         default=False,
     )
 
@@ -763,6 +781,12 @@ def get_parser(default_config_files, git_root):
         metavar="VOICE_LANGUAGE",
         default="en",
         help="Specify the language for voice using ISO 639-1 code (default: auto)",
+    )
+    group.add_argument(
+        "--voice-input-device",
+        metavar="VOICE_INPUT_DEVICE",
+        default=None,
+        help="Specify the input device name for voice recording",
     )
 
     return parser

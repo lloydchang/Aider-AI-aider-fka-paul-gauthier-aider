@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import git
 
 from aider.coders import Coder
+from aider.coders.base_coder import UnknownEditFormat
 from aider.dump import dump  # noqa: F401
 from aider.io import InputOutput
 from aider.models import Model
@@ -167,6 +168,37 @@ class TestCoder(unittest.TestCase):
             coder.check_for_file_mentions(f"Please check {fname}!")
 
             self.assertEqual(coder.abs_fnames, set([str(fname.resolve())]))
+
+    def test_skip_duplicate_basename_mentions(self):
+        with GitTemporaryDirectory():
+            io = InputOutput(pretty=False, yes=True)
+            coder = Coder.create(self.GPT35, None, io)
+
+            # Create files with same basename in different directories
+            fname1 = Path("dir1") / "file.txt"
+            fname2 = Path("dir2") / "file.txt"
+            fname3 = Path("dir3") / "unique.txt"
+
+            for fname in [fname1, fname2, fname3]:
+                fname.parent.mkdir(parents=True, exist_ok=True)
+                fname.touch()
+
+            # Add one file to chat
+            coder.add_rel_fname(str(fname1))
+
+            # Mock get_tracked_files to return all files
+            mock = MagicMock()
+            mock.return_value = set([str(fname1), str(fname2), str(fname3)])
+            coder.repo.get_tracked_files = mock
+
+            # Check that file mentions skip files with duplicate basenames
+            mentioned = coder.get_file_mentions(f"Check {fname2} and {fname3}")
+            self.assertEqual(mentioned, {str(fname3)})
+
+            # Add a read-only file with same basename
+            coder.abs_read_only_fnames.add(str(fname2.resolve()))
+            mentioned = coder.get_file_mentions(f"Check {fname1} and {fname3}")
+            self.assertEqual(mentioned, {str(fname3)})
 
     def test_check_for_file_mentions_read_only(self):
         with GitTemporaryDirectory():
@@ -739,7 +771,7 @@ two
         # Test case with no URL
         no_url_input = "This text contains no URL"
         result = coder.check_for_urls(no_url_input)
-        self.assertEqual(result, [])
+        self.assertEqual(result, no_url_input)
 
         # Test case with the same URL appearing multiple times
         repeated_url_input = (
@@ -747,7 +779,8 @@ two
             " more time"
         )
         result = coder.check_for_urls(repeated_url_input)
-        self.assertEqual(result.count("https://example.com"), 1)
+        # the original 3 in the input text, plus 1 more for the scraped text
+        self.assertEqual(result.count("https://example.com"), 4)
         self.assertIn("https://example.com", result)
 
     def test_coder_from_coder_with_subdir(self):
@@ -845,8 +878,31 @@ This command will print 'Hello, World!' to the console."""
             # Test with a message containing a URL
             message = "Check out https://example.com"
             result = coder.check_for_urls(message)
-            self.assertEqual(result, [])
+            self.assertEqual(result, message)
             coder.commands.scraper.scrape.assert_not_called()
+
+    def test_unknown_edit_format_exception(self):
+        # Test the exception message format
+        invalid_format = "invalid_format"
+        valid_formats = ["diff", "whole", "map"]
+        exc = UnknownEditFormat(invalid_format, valid_formats)
+        expected_msg = (
+            f"Unknown edit format {invalid_format}. Valid formats are: {', '.join(valid_formats)}"
+        )
+        self.assertEqual(str(exc), expected_msg)
+
+    def test_unknown_edit_format_creation(self):
+        # Test that creating a Coder with invalid edit format raises the exception
+        io = InputOutput(yes=True)
+        invalid_format = "invalid_format"
+
+        with self.assertRaises(UnknownEditFormat) as cm:
+            Coder.create(self.GPT35, invalid_format, io=io)
+
+        exc = cm.exception
+        self.assertEqual(exc.edit_format, invalid_format)
+        self.assertIsInstance(exc.valid_formats, list)
+        self.assertTrue(len(exc.valid_formats) > 0)
 
     def test_coder_create_with_new_file_oserror(self):
         with GitTemporaryDirectory():

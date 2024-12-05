@@ -23,6 +23,7 @@ class TestMain(TestCase):
         self.original_env = os.environ.copy()
         os.environ["OPENAI_API_KEY"] = "deadbeef"
         os.environ["AIDER_CHECK_UPDATE"] = "false"
+        os.environ["AIDER_ANALYTICS"] = "false"
         self.original_cwd = os.getcwd()
         self.tempdir_obj = IgnorantTemporaryDirectory()
         self.tempdir = self.tempdir_obj.name
@@ -666,6 +667,23 @@ class TestMain(TestCase):
                 return_coder=True,
             )
             self.assertTrue(coder.detect_urls)
+
+    def test_pytest_env_vars(self):
+        # Verify that environment variables from pytest.ini are properly set
+        self.assertEqual(os.environ.get("AIDER_ANALYTICS"), "false")
+
+    def test_invalid_edit_format(self):
+        with GitTemporaryDirectory():
+            with patch("aider.io.InputOutput.offer_url") as mock_offer_url:
+                result = main(
+                    ["--edit-format", "not-a-real-format", "--exit", "--yes"],
+                    input=DummyInput(),
+                    output=DummyOutput(),
+                )
+                self.assertEqual(result, 1)  # main() should return 1 on error
+                mock_offer_url.assert_called_once()
+                args, _ = mock_offer_url.call_args
+                self.assertEqual(args[0], "https://aider.chat/docs/more/edit-formats.html")
 
     def test_chat_language_spanish(self):
         with GitTemporaryDirectory():

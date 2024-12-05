@@ -3106,3 +3106,149 @@
     mw: 21
   start_tag: v0.63.0
   total_lines: 1203
+- aider_percentage: 81.11
+  aider_total: 584
+  end_date: '2024-11-26'
+  end_tag: v0.65.0
+  file_counts:
+    aider/__init__.py:
+      Paul Gauthier: 1
+    aider/analytics.py:
+      Paul Gauthier: 2
+      Paul Gauthier (aider): 5
+    aider/args.py:
+      Paul Gauthier (aider): 12
+    aider/coders/base_coder.py:
+      Paul Gauthier: 1
+      Paul Gauthier (aider): 31
+    aider/commands.py:
+      Paul Gauthier: 2
+    aider/io.py:
+      Paul Gauthier: 3
+      Paul Gauthier (aider): 9
+    aider/main.py:
+      Paul Gauthier: 15
+      Paul Gauthier (aider): 19
+    aider/models.py:
+      Paul Gauthier: 9
+      Paul Gauthier (aider): 17
+    aider/queries/tree-sitter-dart-tags.scm:
+      malkoG: 91
+    aider/urls.py:
+      Paul Gauthier (aider): 1
+    aider/website/_includes/quant-chart.js:
+      Paul Gauthier (aider): 76
+    aider/website/docs/leaderboards/index.md:
+      Paul Gauthier: 1
+    benchmark/benchmark.py:
+      Paul Gauthier (aider): 10
+    benchmark/docker.sh:
+      Paul Gauthier (aider): 1
+    benchmark/over_time.py:
+      Paul Gauthier: 1
+      Paul Gauthier (aider): 157
+    scripts/update-docs.sh:
+      Paul Gauthier: 1
+    scripts/update-history.py:
+      Paul Gauthier: 8
+      Paul Gauthier (aider): 64
+    tests/basic/test_coder.py:
+      Paul Gauthier (aider): 81
+    tests/basic/test_editor.py:
+      Paul Gauthier (aider): 16
+    tests/basic/test_main.py:
+      Paul Gauthier: 1
+      Paul Gauthier (aider): 42
+    tests/basic/test_models.py:
+      Paul Gauthier (aider): 30
+    tests/basic/test_repomap.py:
+      Paul Gauthier (aider): 13
+  grand_total:
+    Paul Gauthier: 45
+    Paul Gauthier (aider): 584
+    malkoG: 91
+  start_tag: v0.64.0
+  total_lines: 720
+- aider_percentage: 81.96
+  aider_total: 595
+  end_date: '2024-12-01'
+  end_tag: v0.66.0
+  file_counts:
+    .github/workflows/docker-build-test.yml:
+      Paul Gauthier (aider): 2
+    .github/workflows/docker-release.yml:
+      Paul Gauthier (aider): 2
+    .github/workflows/pages.yml:
+      Paul Gauthier (aider): 3
+    .github/workflows/release.yml:
+      Paul Gauthier (aider): 2
+    .github/workflows/ubuntu-tests.yml:
+      Paul Gauthier: 1
+      Paul Gauthier (aider): 8
+    .github/workflows/windows-tests.yml:
+      Paul Gauthier (aider): 4
+    aider/__init__.py:
+      Paul Gauthier: 16
+    aider/analytics.py:
+      Paul Gauthier (aider): 19
+    aider/args.py:
+      Paul Gauthier: 1
+      Paul Gauthier (aider): 6
+      Philippe de Reynal: 6
+    aider/coders/base_coder.py:
+      Paul Gauthier: 15
+      Paul Gauthier (aider): 41
+    aider/commands.py:
+      Paul Gauthier: 5
+      Paul Gauthier (aider): 27
+    aider/io.py:
+      Paul Gauthier (aider): 17
+    aider/linter.py:
+      Paul Gauthier (aider): 2
+    aider/main.py:
+      Paul Gauthier: 17
+      Paul Gauthier (aider): 46
+    aider/models.py:
+      Paul Gauthier: 7
+    aider/run_cmd.py:
+      Paul Gauthier (aider): 8
+    aider/utils.py:
+      Paul Gauthier: 1
+    aider/voice.py:
+      Philippe de Reynal: 24
+    aider/website/docs/leaderboards/index.md:
+      Paul Gauthier: 1
+    benchmark/benchmark.py:
+      Paul Gauthier (aider): 38
+    scripts/blame.py:
+      Paul Gauthier (aider): 26
+    scripts/issues.py:
+      Paul Gauthier: 3
+    scripts/update-history.py:
+      Paul Gauthier (aider): 59
+    tests/basic/test_coder.py:
+      Paul Gauthier: 4
+    tests/basic/test_commands.py:
+      Paul Gauthier: 15
+      Paul Gauthier (aider): 79
+    tests/basic/test_main.py:
+      Paul Gauthier (aider): 4
+    tests/basic/test_models.py:
+      Paul Gauthier: 2
+    tests/basic/test_repomap.py:
+      Paul Gauthier: 12
+      Paul Gauthier (aider): 45
+    tests/basic/test_voice.py:
+      Paul Gauthier (aider): 103
+    tests/browser/test_browser.py:
+      Paul Gauthier: 1
+    tests/fixtures/languages/javascript/test.js:
+      Paul Gauthier (aider): 26
+    tests/fixtures/languages/python/test.py:
+      Paul Gauthier (aider): 28
+  grand_total:
+    Paul Gauthier: 101
+    Paul Gauthier (aider): 595
+    Philippe de Reynal: 30
+  start_tag: v0.65.0
+  total_lines: 726

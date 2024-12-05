@@ -5,7 +5,7 @@ import time
 import uuid
 from pathlib import Path
 
-from mixpanel import Mixpanel, MixpanelException
+from mixpanel import MixpanelException
 from posthog import Posthog
 
 from aider import __version__
@@ -50,8 +50,13 @@ class Analytics:
             self.disable(False)
             return
 
-        self.mp = Mixpanel(mixpanel_project_token)
-        self.ph = Posthog(project_api_key=posthog_project_api_key, host=posthog_host)
+        # self.mp = Mixpanel(mixpanel_project_token)
+        self.ph = Posthog(
+            project_api_key=posthog_project_api_key,
+            host=posthog_host,
+            on_error=self.posthog_error,
+            enable_exception_autocapture=True,
+        )
 
     def disable(self, permanently):
         self.mp = None
@@ -78,7 +83,7 @@ class Analytics:
         if not self.user_id:
             return False
 
-        PERCENT = 1
+        PERCENT = 2.5
         return self.is_uuid_in_percentage(self.user_id, PERCENT)
 
     def is_uuid_in_percentage(self, uuid_str, percent):
@@ -105,9 +110,14 @@ class Analytics:
         return uuid_str[:6] <= threshold
 
     def get_data_file_path(self):
-        data_file = Path.home() / ".aider" / "analytics.json"
-        data_file.parent.mkdir(parents=True, exist_ok=True)
-        return data_file
+        try:
+            data_file = Path.home() / ".aider" / "analytics.json"
+            data_file.parent.mkdir(parents=True, exist_ok=True)
+            return data_file
+        except OSError:
+            # If we can't create/access the directory, just disable analytics
+            self.disable(permanently=False)
+            return None
 
     def get_or_create_uuid(self):
         self.load_data()
@@ -119,6 +129,9 @@ class Analytics:
 
     def load_data(self):
         data_file = self.get_data_file_path()
+        if not data_file:
+            return
+
         if data_file.exists():
             try:
                 data = json.loads(data_file.read_text())
@@ -130,14 +143,20 @@ class Analytics:
 
     def save_data(self):
         data_file = self.get_data_file_path()
+        if not data_file:
+            return
+
         data = dict(
             uuid=self.user_id,
             permanently_disable=self.permanently_disable,
             asked_opt_in=self.asked_opt_in,
         )
 
-        # Allow exceptions; crash if we can't record permanently_disabled=True, etc
-        data_file.write_text(json.dumps(data, indent=4))
+        try:
+            data_file.write_text(json.dumps(data, indent=4))
+        except OSError:
+            # If we can't write the file, just disable analytics
+            self.disable(permanently=False)
 
     def get_system_info(self):
         return {
@@ -157,6 +176,12 @@ class Analytics:
         elif "/" in model.name:
             return model.name.split("/")[0] + "/REDACTED"
         return None
+
+    def posthog_error(self):
+        """disable posthog if we get an error"""
+        # https://github.com/PostHog/posthog-python/blob/9e1bb8c58afaa229da24c4fb576c08bb88a75752/posthog/consumer.py#L86
+        # https://github.com/Aider-AI/aider/issues/2532
+        self.ph = None
 
     def event(self, event_name, main_model=None, **kwargs):
         if not self.mp and not self.ph and not self.logfile:
@@ -197,10 +222,9 @@ class Analytics:
                 "user_id": self.user_id,
                 "time": int(time.time()),
             }
-            with open(self.logfile, "a") as f:
-                json.dump(log_entry, f)
-                f.write("\n")
-
-    def __del__(self):
-        if self.ph:
-            self.ph.shutdown()
+            try:
+                with open(self.logfile, "a") as f:
+                    json.dump(log_entry, f)
+                    f.write("\n")
+            except OSError:
+                pass  # Ignore OS errors when writing to logfile

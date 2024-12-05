@@ -17,7 +17,7 @@ from aider.dump import dump  # noqa: F401
 from aider.llm import litellm
 
 DEFAULT_MODEL_NAME = "gpt-4o"
-ANTHROPIC_BETA_HEADER = "prompt-caching-2024-07-31"
+ANTHROPIC_BETA_HEADER = "prompt-caching-2024-07-31,pdfs-2024-09-25"
 
 OPENAI_MODELS = """
 gpt-4
@@ -60,6 +60,23 @@ claude-3-5-sonnet-20241022
 """
 
 ANTHROPIC_MODELS = [ln.strip() for ln in ANTHROPIC_MODELS.splitlines() if ln.strip()]
+
+# Mapping of model aliases to their canonical names
+MODEL_ALIASES = {
+    # Claude models
+    "sonnet": "claude-3-5-sonnet-20241022",
+    "haiku": "claude-3-5-haiku-20241022",
+    "opus": "claude-3-opus-20240229",
+    # GPT models
+    "4": "gpt-4-0613",
+    "4o": "gpt-4o",
+    "4-turbo": "gpt-4-1106-preview",
+    "35turbo": "gpt-3.5-turbo",
+    "35-turbo": "gpt-3.5-turbo",
+    "3": "gpt-3.5-turbo",
+    # Other models
+    "deepseek": "deepseek/deepseek-coder",
+}
 
 
 @dataclass
@@ -819,7 +836,11 @@ model_info_manager = ModelInfoManager()
 
 class Model(ModelSettings):
     def __init__(self, model, weak_model=None, editor_model=None, editor_edit_format=None):
+        # Map any alias to its canonical name
+        model = MODEL_ALIASES.get(model, model)
+
         self.name = model
+
         self.max_chat_history_tokens = 1024
         self.weak_model = None
         self.editor_model = None

@@ -1,5 +1,55 @@
-
 # Release history
+
+### main branch
+
+- [Use aider in your IDE or editor](https://aider.chat/docs/usage/watch.html).
+  - Run `aider --watch-files` and it will watch for instructions you add to your source files.
+  - One-liner `# ...` or `// ...` comments that start or end with "AI" are instructions to aider.
+  - When aider sees "AI!" it reads and follows all the instructions in AI comments.
+- Support for new Amazon Bedrock Nova models.
+- `/diff` now invokes `git diff` to use your preferred diff tool.
+- Added Ctrl-Z support for process suspension.
+- `--read` now expands `~` home dirs.
+- Aider wrote 63% of the code in this release.
+
+### Aider v0.66.0
+
+- PDF support for Sonnet and Gemini models.
+- Added `--voice-input-device` to select audio input device for voice recording, by @preynal.
+- Added `--timeout` option to configure API call timeouts.
+- Set cwd to repo root when running shell commands.
+- Added Ctrl-Up/Down keyboard shortcuts for per-message history navigation.
+- Improved error handling for failed .gitignore file operations.
+- Improved error handling for input history file permissions.
+- Improved error handling for analytics file access.
+- Removed spurious warning about disabling pretty in VSCode.
+- Removed broken support for Dart.
+- Bugfix when scraping URLs found in chat messages.
+- Better handling of __version__ import errors.
+- Improved `/drop` command to support substring matching for non-glob patterns.
+- Aider wrote 82% of the code in this release.
+
+### Aider v0.65.1
+
+- Bugfix to `--alias`.
+
+### Aider v0.65.0
+
+- Added `--alias` config to define [custom model aliases](https://aider.chat/docs/config/model-aliases.html).
+- Added `--[no-]detect-urls` flag to disable detecting and offering to scrape URLs found in the chat.
+- Ollama models now default to an 8k context window.
+- Added [RepoMap support for Dart language](https://aider.chat/docs/languages.html) by @malkoG.
+- Ask 2.5% of users if they want to opt-in to [analytics](https://aider.chat/docs/more/analytics.html).
+- Skip suggesting files that share names with files already in chat.
+- `/editor` returns and prefill the file content into the prompt, so you can use `/editor` to compose messages that start with `/commands`, etc.
+- Enhanced error handling for analytics.
+- Improved handling of UnknownEditFormat exceptions with helpful documentation links.
+- Bumped dependencies to pick up grep-ast 0.4.0 for Dart language support.
+- Aider wrote 81% of the code in this release.
+
+### Aider v0.64.1
+
+- Disable streaming for o1 on OpenRouter.
 
 ### Aider v0.64.0
 

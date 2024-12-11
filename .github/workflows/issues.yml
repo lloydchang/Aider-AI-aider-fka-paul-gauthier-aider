@@ -1,7 +1,7 @@
 name: Process GitHub Issues
 on:
-  schedule:
-    - cron: '0 */12 * * *'  # Run every 12 hours
+  # schedule:
+  #   - cron: '0 */12 * * *'  # Run every 12 hours
   workflow_dispatch:  # Allow manual triggers
 
 jobs:

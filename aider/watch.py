@@ -25,6 +25,16 @@ def is_source_file(path: Path) -> bool:
         ".pm",
         ".sh",
         ".bash",
+        ".zsh",
+        ".bashrc",
+        ".bash_profile",
+        ".bash_login",
+        ".bash_logout",
+        ".zshrc",
+        ".zprofile",
+        ".zlogin",
+        ".zlogout",
+        ".profile",
         ".yaml",
         ".yml",
         # // style comments
@@ -72,13 +82,14 @@ class FileWatcher:
     """Watches source files for changes and AI comments"""
 
     # Compiled regex pattern for AI comments
-    ai_comment_pattern = re.compile(r"(?:#|//|--) *(ai\b.*|ai\b.*|.*\bai!?)$", re.IGNORECASE)
+    ai_comment_pattern = re.compile(r"(?:#|//|--) *(ai\b.*|ai\b.*|.*\bai!?) *$", re.IGNORECASE)
 
-    def __init__(self, coder, gitignores=None, verbose=False):
+    def __init__(self, coder, gitignores=None, verbose=False, analytics=None):
         self.coder = coder
         self.io = coder.io
         self.root = Path(coder.root)
         self.verbose = verbose
+        self.analytics = analytics
         self.stop_event = None
         self.watcher_thread = None
         self.changed_files = set()
@@ -161,6 +172,8 @@ class FileWatcher:
 
             if fname in self.coder.abs_fnames:
                 continue
+            if self.analytics:
+                self.analytics.event("ai-comments file-add")
             self.coder.abs_fnames.add(fname)
             rel_fname = self.coder.get_rel_fname(fname)
             self.io.tool_output(f"Added {rel_fname} to the chat")
@@ -169,14 +182,16 @@ class FileWatcher:
         if not has_bangs:
             return ""
 
+        if self.analytics:
+            self.analytics.event("ai-comments execute")
         self.io.tool_output("Processing your request...")
 
-        res = """The "ai" comments below can be found in the code files I've shared with you.
+        res = """
+The "AI" comments below marked with █ can be found in the code files I've shared with you.
 They contain your instructions.
 Make the requested changes.
-Be sure to remove all these "ai" comments from the code!
-
-    """
+Be sure to remove all these "AI" comments from the code!
+"""
 
         # Refresh all AI comments from tracked files
         for fname in self.coder.abs_fnames:
@@ -194,22 +209,26 @@ Be sure to remove all these "ai" comments from the code!
             # Convert comment line numbers to line indices (0-based)
             lois = [ln - 1 for ln, _ in zip(line_nums, comments) if ln > 0]
 
-            context = TreeContext(
-                rel_fname,
-                code,
-                color=False,
-                line_number=False,
-                child_context=False,
-                last_line=False,
-                margin=0,
-                mark_lois=False,
-                loi_pad=3,
-                show_top_of_file_parent_scope=False,
-            )
-            context.lines_of_interest = set()
-            context.add_lines_of_interest(lois)
-            context.add_context()
-            res += context.format()
+            try:
+                context = TreeContext(
+                    rel_fname,
+                    code,
+                    color=False,
+                    line_number=False,
+                    child_context=False,
+                    last_line=False,
+                    margin=0,
+                    mark_lois=True,
+                    loi_pad=3,
+                    show_top_of_file_parent_scope=False,
+                )
+                context.lines_of_interest = set()
+                context.add_lines_of_interest(lois)
+                context.add_context()
+                res += context.format()
+            except ValueError:
+                for ln, comment in zip(line_nums, comments):
+                    res += f"  Line {ln}: {comment}\n"
 
         return res
 
@@ -218,7 +237,7 @@ Be sure to remove all these "ai" comments from the code!
         line_nums = []
         comments = []
         has_bang = False
-        content = self.io.read_text(filepath)
+        content = self.io.read_text(filepath, silent=True)
         for i, line in enumerate(content.splitlines(), 1):
             if match := self.ai_comment_pattern.search(line):
                 comment = match.group(0).strip()

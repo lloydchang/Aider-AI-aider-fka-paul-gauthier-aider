@@ -43,6 +43,8 @@ class Commands:
             verify_ssl=self.verify_ssl,
             args=self.args,
             parser=self.parser,
+            verbose=self.verbose,
+            editor=self.editor,
         )
 
     def __init__(
@@ -101,6 +103,13 @@ class Commands:
                 ("help", "Get help about using aider (usage, config, troubleshoot)."),
                 ("ask", "Ask questions about your code without making any changes."),
                 ("code", "Ask for changes to your code (using the best edit format)."),
+                (
+                    "architect",
+                    (
+                        "Work with an architect model to design code changes, and an editor to make"
+                        " them."
+                    ),
+                ),
             ]
         )
 
@@ -1116,36 +1125,14 @@ class Commands:
                 )
                 return
 
-        history_iter = self.io.get_input_history()
-
-        history = []
-        size = 0
-        for line in history_iter:
-            if line.startswith("/"):
-                continue
-            if line in history:
-                continue
-            if size + len(line) > 1024:
-                break
-            size += len(line)
-            history.append(line)
-
-        history.reverse()
-        history = "\n".join(history)
-
         try:
-            text = self.voice.record_and_transcribe(history, language=self.voice_language)
+            text = self.voice.record_and_transcribe(None, language=self.voice_language)
         except litellm.OpenAIError as err:
             self.io.tool_error(f"Unable to use OpenAI whisper model: {err}")
             return
 
         if text:
-            self.io.add_to_input_history(text)
-            self.io.print()
-            self.io.user_input(text, log_only=False)
-            self.io.print()
-
-        return text
+            self.io.placeholder = text
 
     def cmd_paste(self, args):
         """Paste image/text from the clipboard into the chat.\
@@ -1198,9 +1185,14 @@ class Commands:
             self.io.tool_error(f"Error processing clipboard content: {e}")
 
     def cmd_read_only(self, args):
-        "Add files to the chat that are for reference, not to be edited"
+        "Add files to the chat that are for reference only, or turn added files to read-only"
         if not args.strip():
-            self.io.tool_error("Please provide filenames or directories to read.")
+            # Convert all files in chat to read-only
+            for fname in list(self.coder.abs_fnames):
+                self.coder.abs_fnames.remove(fname)
+                self.coder.abs_read_only_fnames.add(fname)
+                rel_fname = self.coder.get_rel_fname(fname)
+                self.io.tool_output(f"Converted {rel_fname} to read-only")
             return
 
         filenames = parse_quoted_filenames(args)
@@ -1349,6 +1341,10 @@ class Commands:
         except Exception as e:
             self.io.tool_error(f"Error saving commands to file: {e}")
 
+    def cmd_multiline_mode(self, args):
+        "Toggle multiline mode (swaps behavior of Enter and Meta+Enter)"
+        self.io.toggle_multiline_mode()
+
     def cmd_copy(self, args):
         "Copy the last assistant message to the clipboard"
         all_messages = self.coder.done_messages + self.coder.cur_messages
@@ -1396,6 +1392,49 @@ class Commands:
         user_input = pipe_editor(initial_content, suffix="md", editor=self.editor)
         if user_input.strip():
             self.io.set_placeholder(user_input.rstrip())
+
+    def cmd_copy_context(self, args=None):
+        """Copy the current chat context as markdown, suitable to paste into a web UI"""
+
+        chunks = self.coder.format_chat_chunks()
+
+        markdown = ""
+
+        # Only include specified chunks in order
+        for messages in [chunks.repo, chunks.readonly_files, chunks.chat_files]:
+            for msg in messages:
+                # Only include user messages
+                if msg["role"] != "user":
+                    continue
+
+                content = msg["content"]
+
+                # Handle image/multipart content
+                if isinstance(content, list):
+                    for part in content:
+                        if part.get("type") == "text":
+                            markdown += part["text"] + "\n\n"
+                else:
+                    markdown += content + "\n\n"
+
+        markdown += """
+Just tell me how to edit the files to make the changes.
+Don't give me back entire files.
+Just show me the edits I need to make.
+
+
+"""
+
+        try:
+            pyperclip.copy(markdown)
+            self.io.tool_output("Copied code context to clipboard.")
+        except pyperclip.PyperclipException as e:
+            self.io.tool_error(f"Failed to copy to clipboard: {str(e)}")
+            self.io.tool_output(
+                "You may need to install xclip or xsel on Linux, or pbcopy on macOS."
+            )
+        except Exception as e:
+            self.io.tool_error(f"An unexpected error occurred while copying to clipboard: {str(e)}")
 
 
 def expand_subdir(file_path):

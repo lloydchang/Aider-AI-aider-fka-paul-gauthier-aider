@@ -12,6 +12,12 @@ import semver
 import yaml
 from tqdm import tqdm
 
+website_files = [
+    "aider/website/share/index.md",
+    "aider/website/_includes/head_custom.html",
+    "aider/website/docs/leaderboards/index.md",
+]
+
 
 def blame(start_tag, end_tag=None):
     commits = get_all_commit_hashes_between_tags(start_tag, end_tag)
@@ -26,8 +32,7 @@ def blame(start_tag, end_tag=None):
         for f in files
         if f.endswith((".js", ".py", ".scm", ".sh", "Dockerfile", "Gemfile"))
         or (f.startswith(".github/workflows/") and f.endswith(".yml"))
-        or f == "aider/website/share/index.md"
-        or f == "aider/website/docs/leaderboards/index.md"
+        or f in website_files
     ]
     files = [f for f in files if not f.endswith("prompts.py")]
 
@@ -203,9 +208,23 @@ def main():
 def get_counts_for_file(start_tag, end_tag, authors, fname):
     try:
         if end_tag:
-            text = run(["git", "blame", f"{start_tag}..{end_tag}", "--", fname])
+            text = run(
+                [
+                    "git",
+                    "blame",
+                    "-M",
+                    "-C",
+                    "-C",
+                    "--abbrev=9",
+                    f"{start_tag}..{end_tag}",
+                    "--",
+                    fname,
+                ]
+            )
         else:
-            text = run(["git", "blame", f"{start_tag}..HEAD", "--", fname])
+            text = run(
+                ["git", "blame", "-M", "-C", "-C", "--abbrev=9", f"{start_tag}..HEAD", "--", fname]
+            )
         if not text:
             return None
         text = text.splitlines()

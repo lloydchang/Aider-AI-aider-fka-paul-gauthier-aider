@@ -1,13 +1,21 @@
 document.addEventListener('DOMContentLoaded', function () {
   var ctx = document.getElementById('editChart').getContext('2d');
-  const HIGHTLIGHT_MODEL = 'no no no no';
+  const blueDiagonalPattern = pattern.draw('diagonal', 'rgba(54, 162, 235, 0.2)');
+  const redDiagonalPattern = pattern.draw('diagonal', 'rgba(255, 99, 132, 0.2)');
+  let displayedData = [];
+
+  const HIGHTLIGHT_MODEL = 'no no no';
   var leaderboardData = {
     labels: [],
     datasets: [{
       label: 'Percent completed correctly',
       data: [],
       backgroundColor: function(context) {
-        const label = context.chart.data.labels[context.dataIndex] || '';
+        const row = allData[context.dataIndex];
+        if (row && row.edit_format === 'whole') {
+          return diagonalPattern;
+        }
+        const label = leaderboardData.labels[context.dataIndex] || '';
         return (label && label.includes(HIGHTLIGHT_MODEL)) ? 'rgba(255, 99, 132, 0.2)' : 'rgba(54, 162, 235, 0.2)';
       },
       borderColor: function(context) {
@@ -23,7 +31,8 @@ document.addEventListener('DOMContentLoaded', function () {
     allData.push({
       model: '{{ row.model }}',
       pass_rate_2: {{ row.pass_rate_2 }},
-      percent_cases_well_formed: {{ row.percent_cases_well_formed }}
+      percent_cases_well_formed: {{ row.percent_cases_well_formed }},
+      edit_format: '{{ row.edit_format }}'
     });
   {% endfor %}
 
@@ -31,6 +40,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var selectedRows = document.querySelectorAll('tr.selected');
     var showAll = selectedRows.length === 0;
 
+    displayedData = [];
     leaderboardData.labels = [];
     leaderboardData.datasets[0].data = [];
 
@@ -40,13 +50,29 @@ document.addEventListener('DOMContentLoaded', function () {
         rowElement.classList.remove('selected');
       }
       if (showAll || rowElement.classList.contains('selected')) {
+        displayedData.push(row);
         leaderboardData.labels.push(row.model);
         leaderboardData.datasets[0].data.push(row.pass_rate_2);
       }
     });
 
     leaderboardChart.update();
+    leaderboardChart.render();
   }
+
+  // Use displayedData in the backgroundColor callback instead of allData
+  leaderboardData.datasets[0].backgroundColor = function(context) {
+    const row = displayedData[context.dataIndex];
+    const label = leaderboardData.labels[context.dataIndex] || '';
+    if (label && label.includes(HIGHTLIGHT_MODEL)) {
+      if (row && row.edit_format === 'whole') return redDiagonalPattern;
+      else return 'rgba(255, 99, 132, 0.2)';
+    } else if (row && row.edit_format === 'whole') {
+      return blueDiagonalPattern;
+    } else {
+      return 'rgba(54, 162, 235, 0.2)';
+    }
+  };
 
   var tableBody = document.querySelector('table tbody');
   allData.forEach(function(row, index) {
@@ -63,9 +89,69 @@ document.addEventListener('DOMContentLoaded', function () {
     type: 'bar',
     data: leaderboardData,
     options: {
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            generateLabels: function(chart) {
+              return [
+                {
+                  text: 'Diff-like format',
+                  fillStyle: 'rgba(54, 162, 235, 0.2)',
+                  strokeStyle: 'rgba(54, 162, 235, 1)',
+                  lineWidth: 1
+                },
+                {
+                  text: 'Whole format',
+                  fillStyle: blueDiagonalPattern,
+                  strokeStyle: 'rgba(54, 162, 235, 1)',
+                  lineWidth: 1
+                }
+              ];
+            }
+          }
+        }
+      },
       scales: {
         y: {
-          beginAtZero: true
+          beginAtZero: true,
+          title: {
+            display: true,
+            text: 'Percent completed correctly'
+          }
+        },
+        x: {
+          ticks: {
+            callback: function(value, index) {
+              const label = this.getLabelForValue(value);
+              if (label.length <= "claude-3-5-sonnet".length) {
+                return label;
+              }
+              
+              // Find all possible split positions
+              const splitPositions = [];
+              for (let i = 0; i < label.length; i++) {
+                if (label[i] === '-' || label[i] === ' ') {
+                  splitPositions.push(i);
+                }
+              }
+              
+              if (splitPositions.length === 0) {
+                return label;
+              }
+              
+              // Find split position closest to middle
+              const middle = label.length / 2;
+              const splitIndex = splitPositions.reduce((closest, current) => {
+                return Math.abs(current - middle) < Math.abs(closest - middle) ? current : closest;
+              });
+              
+              return [
+                label.slice(0, splitIndex),
+                label.slice(splitIndex + 1)
+              ];
+            }
+          }
         }
       }
     }
@@ -79,6 +165,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var tableBody = document.querySelector('table:first-of-type tbody');
     var rows = tableBody.getElementsByTagName('tr');
     
+    displayedData = [];
     leaderboardData.labels = [];
     leaderboardData.datasets[0].data = [];
     
@@ -86,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var rowText = rows[i].textContent;
       if (searchWords.every(word => rowText.toLowerCase().includes(word))) {
         rows[i].style.display = '';
+        displayedData.push(allData[i]);
         leaderboardData.labels.push(allData[i].model);
         leaderboardData.datasets[0].data.push(allData[i].pass_rate_2);
       } else {

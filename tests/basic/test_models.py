@@ -122,6 +122,16 @@ class TestModels(unittest.TestCase):
         model = Model("gpt-4")
         self.assertEqual(model.name, "gpt-4")
 
+    def test_o1_use_temp_false(self):
+        # Test GitHub Copilot models
+        model = Model("github/o1-mini")
+        self.assertEqual(model.name, "github/o1-mini")
+        self.assertEqual(model.use_temperature, False)
+
+        model = Model("github/o1-preview")
+        self.assertEqual(model.name, "github/o1-preview")
+        self.assertEqual(model.use_temperature, False)
+
     def test_aider_extra_model_settings(self):
         import tempfile
 

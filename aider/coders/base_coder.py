@@ -103,6 +103,7 @@ class Coder:
     detect_urls = True
     ignore_mentions = None
     chat_language = None
+    file_watcher = None
 
     @classmethod
     def create(
@@ -153,8 +154,9 @@ class Coder:
                 aider_commit_hashes=from_coder.aider_commit_hashes,
                 commands=from_coder.commands.clone(),
                 total_cost=from_coder.total_cost,
+                ignore_mentions=from_coder.ignore_mentions,
+                file_watcher=from_coder.file_watcher,
             )
-
             use_kwargs.update(update)  # override to complete the switch
             use_kwargs.update(kwargs)  # override passed kwargs
 
@@ -175,7 +177,6 @@ class Coder:
 
     def clone(self, **kwargs):
         new_coder = Coder.create(from_coder=self, **kwargs)
-        new_coder.ignore_mentions = self.ignore_mentions
         return new_coder
 
     def get_announcements(self):
@@ -247,6 +248,9 @@ class Coder:
         if self.done_messages:
             lines.append("Restored previous conversation history.")
 
+        if self.io.multiline_mode:
+            lines.append("Multiline mode: Enabled. Enter inserts newline, Alt-Enter submits text")
+
         return lines
 
     def __init__(
@@ -283,6 +287,9 @@ class Coder:
         suggest_shell_commands=True,
         chat_language=None,
         detect_urls=True,
+        ignore_mentions=None,
+        file_watcher=None,
+        auto_copy_context=False,
     ):
         # Fill in a dummy Analytics if needed, but it is never .enable()'d
         self.analytics = analytics if analytics is not None else Analytics()
@@ -293,7 +300,16 @@ class Coder:
         self.aider_commit_hashes = set()
         self.rejected_urls = set()
         self.abs_root_path_cache = {}
-        self.ignore_mentions = set()
+
+        self.auto_copy_context = auto_copy_context
+
+        self.ignore_mentions = ignore_mentions
+        if not self.ignore_mentions:
+            self.ignore_mentions = set()
+
+        self.file_watcher = file_watcher
+        if self.file_watcher:
+            self.file_watcher.coder = self
 
         self.suggest_shell_commands = suggest_shell_commands
         self.detect_urls = detect_urls
@@ -782,9 +798,10 @@ class Coder:
                 self.io.user_input(with_message)
                 self.run_one(with_message, preproc)
                 return self.partial_response_content
-
             while True:
                 try:
+                    if not self.io.placeholder:
+                        self.copy_context()
                     user_message = self.get_input()
                     self.run_one(user_message, preproc)
                     self.show_undo_hint()
@@ -792,6 +809,10 @@ class Coder:
                     self.keyboard_interrupt()
         except EOFError:
             return
+
+    def copy_context(self):
+        if self.auto_copy_context:
+            self.commands.cmd_copy_context()
 
     def get_input(self):
         inchat_files = self.get_inchat_relative_files()
@@ -1104,7 +1125,10 @@ class Coder:
             # add the reminder anyway
             total_tokens = 0
 
-        final = chunks.cur[-1]
+        if chunks.cur:
+            final = chunks.cur[-1]
+        else:
+            final = None
 
         max_input_tokens = self.main_model.info.get("max_input_tokens") or 0
         # Add the reminder prompt if we still have room to include it.
@@ -1115,7 +1139,7 @@ class Coder:
         ):
             if self.main_model.reminder == "sys":
                 chunks.reminder = reminder_message
-            elif self.main_model.reminder == "user" and final["role"] == "user":
+            elif self.main_model.reminder == "user" and final and final["role"] == "user":
                 # stuff it into the user message
                 new_content = (
                     final["content"]
@@ -1450,7 +1474,7 @@ class Coder:
         words = set(word for word in content.split())
 
         # drop sentence punctuation from the end
-        words = set(word.rstrip(",.!;:") for word in words)
+        words = set(word.rstrip(",.!;:?") for word in words)
 
         # strip away all kinds of quotes
         quotes = "".join(['"', "'", "`"])
@@ -1539,6 +1563,16 @@ class Coder:
                 yield from self.show_send_output_stream(completion)
             else:
                 self.show_send_output(completion)
+
+            # Calculate costs for successful responses
+            self.calculate_and_show_tokens_and_cost(messages, completion)
+
+        except LiteLLMExceptions().exceptions_tuple() as err:
+            ex_info = LiteLLMExceptions().get_ex_info(err)
+            if ex_info.name == "ContextWindowExceededError":
+                # Still calculate costs for context window errors
+                self.calculate_and_show_tokens_and_cost(messages, completion)
+            raise
         except KeyboardInterrupt as kbi:
             self.keyboard_interrupt()
             raise kbi
@@ -1555,8 +1589,6 @@ class Coder:
                 args = self.parse_partial_args()
                 if args:
                     self.io.ai_output(json.dumps(args, indent=4))
-
-            self.calculate_and_show_tokens_and_cost(messages, completion)
 
     def show_send_output(self, completion):
         if self.verbose:

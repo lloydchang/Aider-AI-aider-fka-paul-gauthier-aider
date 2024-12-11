@@ -58,6 +58,7 @@ The model also has to successfully apply all its changes to the source file with
 </table>
 
 <canvas id="editChart" width="800" height="450" style="margin-top: 20px"></canvas>
+<script src="https://unpkg.com/patternomaly/dist/patternomaly.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 {% include edit-leaderboard.js %}
@@ -113,6 +114,7 @@ Therefore, results are available for fewer models.
 </table>
 
 <canvas id="refacChart" width="800" height="450" style="margin-top: 20px"></canvas>
+<script src="https://unpkg.com/patternomaly/dist/patternomaly.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 {% include refactor-leaderboard.js %}
@@ -181,6 +183,6 @@ mod_dates = [get_last_modified_date(file) for file in files]
 latest_mod_date = max(mod_dates)
 cog.out(f"{latest_mod_date.strftime('%B %d, %Y.')}")
 ]]]-->
-December 04, 2024.
+December 10, 2024.
 <!--[[[end]]]-->
 </p>

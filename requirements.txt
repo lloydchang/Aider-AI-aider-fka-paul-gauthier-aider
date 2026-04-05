@@ -6,7 +6,7 @@
 #
 aiohappyeyeballs==2.4.4
     # via aiohttp
-aiohttp==3.11.10
+aiohttp==3.13.4
     # via litellm
 aiosignal==1.3.1
     # via aiohttp
@@ -49,7 +49,7 @@ diskcache==5.6.3
     # via -r requirements/requirements.in
 distro==1.9.0
     # via openai
-filelock==3.16.1
+filelock==3.20.3
     # via huggingface-hub
 flake8==7.1.1
     # via -r requirements/requirements.in
@@ -183,7 +183,7 @@ referencing==0.35.1
     #   jsonschema-specifications
 regex==2024.11.6
     # via tiktoken
-requests==2.32.3
+requests==2.33.0
     # via
     #   huggingface-hub
     #   litellm
@@ -239,7 +239,7 @@ typing-extensions==4.12.2
     #   openai
     #   pydantic
     #   pydantic-core
-urllib3==2.2.3
+urllib3==2.6.3
     # via
     #   mixpanel
     #   requests
